@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Red LAN Corporativa - Edificio 3 Pisos</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              900: '#0c4a6e',
+            },
+            neon: {
+              cyan: '#00f3ff',
+              green: '#00ff66',
+              purple: '#bc13fe',
+              orange: '#ff9900',
+              pink: '#ff007f'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+    
+    .font-mono {
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    /* Glow Effects */
+    .glow-cyan {
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+    }
+    .glow-green {
+      box-shadow: 0 0 15px rgba(0, 255, 102, 0.3);
+    }
+    .text-glow-cyan {
+      text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+    }
+    .text-glow-green {
+      text-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
+    }
+
+    /* Canvas overlay styling */
+    canvas {
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-400 glow-cyan">
+          <i data-lucide="network" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-none bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+            Simulador de Red LAN - Edificio Corporativo
+          </h1>
+          <p class="text-xs text-slate-400 mt-1">Proyecto de Redes: Interconexión y Simulación de Tráfico en Tiempo Real</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons Header -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="toggleCableBtn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 transition">
+          <i data-lucide="cable" class="w-4 h-4 text-cyan-400"></i>
+          <span>Ocultar Cableado</span>
+        </button>
+
+        <button id="quickTrafficBtn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-900/40 border border-cyan-500/40 hover:bg-cyan-800/50 text-cyan-300 transition glow-cyan">
+          <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+          <span>Simular Tráfico General</span>
+        </button>
+
+        <button id="resetSimBtn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-950/40 border border-red-500/30 hover:bg-red-900/40 text-red-300 transition">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          <span>Reiniciar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+    
+    <!-- Left Column: Metrics & Simulation Controls (4 Cols) -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+      
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+          <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i> Métricas del Sistema en Tiempo Real
+        </h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-xs text-slate-400 block">Dispositivos Activos</span>
+            <div class="text-lg font-bold text-cyan-400 font-mono mt-1 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span id="activeDevCount">12 / 12</span>
+            </div>
+          </div>
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-xs text-slate-400 block">Ancho de Banda</span>
+            <div id="bandwidthText" class="text-lg font-bold text-green-400 font-mono mt-1">1 Gbps (100%)</div>
+          </div>
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-xs text-slate-400 block">Paquetes Enviados</span>
+            <div id="packetCounter" class="text-lg font-bold text-purple-400 font-mono mt-1">0</div>
+          </div>
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-xs text-slate-400 block">Estado Router/Internet</span>
+            <div class="text-xs font-bold text-emerald-400 font-mono mt-2 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              ONLINE (ISP 200M)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          <i data-lucide="send" class="w-4 h-4 text-cyan-400"></i> Simular Envío de Paquete (Ping/Datos)
+        </h2>
+        
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-slate-300 font-medium mb-1 block">1. Seleccionar Origen:</label>
+            <select id="sourceSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-500">
+              <!-- JS Populates this -->
+            </select>
+          </div>
+
+          <div>
+            <label class="text-xs text-slate-300 font-medium mb-1 block">2. Seleccionar Destino:</label>
+            <select id="targetSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-emerald-300 focus:outline-none focus:border-emerald-500">
+              <!-- JS Populates this -->
+            </select>
+          </div>
+
+          <button id="sendPacketBtn" class="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2">
+            <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+            <span>Enviar Paquete de Datos</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl flex-1 flex flex-col min-h-[220px]">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <i data-lucide="terminal" class="w-4 h-4 text-green-400"></i> Consola de Red / Terminal Ping
+          </h2>
+          <button id="clearConsoleBtn" class="text-[10px] text-slate-500 hover:text-slate-300 underline">Limpiar</button>
+        </div>
+        
+        <div id="terminalConsole" class="flex-1 bg-slate-950 rounded-xl border border-slate-800/80 p-3 font-mono text-xs text-slate-300 overflow-y-auto max-h-[200px] space-y-1">
+          <div class="text-slate-500 text-[11px]">[Sistema listo. Selecciona origen y destino para iniciar la prueba ICMP/IP.]</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Interactive Canvas & Network Map (8 Cols) -->
+    <div class="lg:col-span-8 flex flex-col gap-4">
+      
+      <!-- Interactive Diagram Frame -->
+      <div class="relative bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl flex-1 flex flex-col overflow-hidden min-h-[550px]">
+        
+        <!-- Legend Header -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+            <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i>
+            <span>Plano Interactivo del Edificio</span>
+          </div>
+
+          <div class="flex items-center gap-4 text-[11px] text-slate-400">
+            <span class="flex items-center gap-1.5">
+              <span class="w-3 h-0.5 bg-blue-400 inline-block"></span> Ethernet UTP
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-3 h-0.5 bg-amber-400 inline-block"></span> Fibra Óptica (Backbone)
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-3 h-0.5 border-t border-dashed border-cyan-400 inline-block"></span> Wi-Fi
+            </span>
+          </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div id="canvasContainer" class="relative flex-1 w-full h-full min-h-[480px] bg-slate-950/80 rounded-xl border border-slate-800/60 overflow-hidden">
+          <canvas id="networkCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+          <!-- Interactive Device Elements HTML Overlay for exact click & hover handling -->
+          <div id="deviceOverlay" class="absolute inset-0 pointer-events-none"></div>
+        </div>
+
+        <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+          <span>💡 <b>Tip:</b> Haz clic en cualquier dispositivo para configurar su dirección IP y máscara de subred.</span>
+          <span class="text-cyan-400 font-mono">Edificio 3 Niveles (LAN Estructurada)</span>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+          <i data-lucide="list" class="w-4 h-4 text-cyan-400"></i> Tabla Resumen de Direccionamiento IP
+        </h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400">
+                <th class="pb-2">Dispositivo</th>
+                <th class="pb-2">Ubicación</th>
+                <th class="pb-2">Dirección IP</th>
+                <th class="pb-2">Máscara</th>
+                <th class="pb-2">Puerta de Enlace (Gateway)</th>
+                <th class="pb-2 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="ipTableBody" class="divide-y divide-slate-800/50 text-slate-300">
+              <!-- JS Populates Table Rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="ipConfigModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl relative transform scale-95 transition-transform duration-200" id="modalCard">
+      
+      <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2 text-cyan-400 font-bold text-base">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <span id="modalDeviceTitle">Configurar Dispositivo</span>
+        </div>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="ipConfigForm" class="space-y-4">
+        <input type="hidden" id="modalDeviceId" />
+
+        <div>
+          <label class="text-xs text-slate-400 font-medium block mb-1">Nombre del Dispositivo</label>
+          <input type="text" id="modalDevName" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500" readonly />
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-300 font-medium block mb-1">Dirección IP (IPv4)</label>
+          <input type="text" id="modalDevIp" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-500" required />
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-300 font-medium block mb-1">Máscara de Subred</label>
+          <input type="text" id="modalDevMask" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-300 focus:outline-none focus:border-cyan-500" required />
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-300 font-medium block mb-1">Puerta de Enlace (Gateway)</label>
+          <input type="text" id="modalDevGateway" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-emerald-300 focus:outline-none focus:border-cyan-500" required />
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" id="cancelModalBtn" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold glow-cyan">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. DATA STRUCTURES & NETWORK DEFINITION
+       ========================================================================== */
+    const devices = [
+      // Piso 2 (Data Center / Dirección)
+      { id: 'router', name: 'Router Principal', type: 'router', floor: 2, ip: '192.168.1.1', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.8, relY: 0.16, icon: 'router' },
+      { id: 'server', name: 'Servidor Central', type: 'server', floor: 2, ip: '192.168.1.2', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.55, relY: 0.16, icon: 'server' },
+      { id: 'switch_p2', name: 'Switch Principal (PISO 2)', type: 'switch', floor: 2, ip: '192.168.1.3', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.3, relY: 0.16, icon: 'network' },
+      { id: 'pc_p2_1', name: 'PC Dirección 01', type: 'pc', floor: 2, ip: '192.168.1.20', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.12, relY: 0.16, icon: 'monitor' },
+
+      // Piso 1 (Recursos Humanos / Operativo)
+      { id: 'switch_p1', name: 'Switch Piso 1', type: 'switch', floor: 1, ip: '192.168.1.4', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.3, relY: 0.48, icon: 'network' },
+      { id: 'pc_p1_1', name: 'PC RH 01', type: 'pc', floor: 1, ip: '192.168.1.10', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.1, relY: 0.48, icon: 'monitor' },
+      { id: 'pc_p1_2', name: 'PC RH 02', type: 'pc', floor: 1, ip: '192.168.1.11', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.5, relY: 0.48, icon: 'monitor' },
+      { id: 'pc_p1_3', name: 'PC Contabilidad', type: 'pc', floor: 1, ip: '192.168.1.12', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.7, relY: 0.48, icon: 'monitor' },
+      { id: 'printer_p1', name: 'Impresora Compartida', type: 'printer', floor: 1, ip: '192.168.1.15', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.88, relY: 0.48, icon: 'printer' },
+
+      // Planta Baja (Recepción / Visitantes)
+      { id: 'switch_pb', name: 'Switch Secundario PB', type: 'switch', floor: 0, ip: '192.168.1.5', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.3, relY: 0.82, icon: 'network' },
+      { id: 'pc_pb_1', name: 'PC Recepción', type: 'pc', floor: 0, ip: '192.168.1.30', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.1, relY: 0.82, icon: 'monitor' },
+      { id: 'ap_pb', name: 'Access Point Wi-Fi', type: 'ap', floor: 0, ip: '192.168.1.6', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.65, relY: 0.82, icon: 'wifi' },
+      { id: 'printer_pb', name: 'Impresora Recepción', type: 'printer', floor: 0, ip: '192.168.1.31', mask: '255.255.255.0', gateway: '192.168.1.1', relX: 0.88, relY: 0.82, icon: 'printer' },
+    ];
+
+    // Connections (Topology Links)
+    const connections = [
+      // Backbone (Fibra Óptica Vertical)
+      { from: 'switch_p2', to: 'switch_p1', type: 'fiber' },
+      { from: 'switch_p1', to: 'switch_pb', type: 'fiber' },
+
+      // Piso 2 connections
+      { from: 'switch_p2', to: 'router', type: 'ethernet' },
+      { from: 'switch_p2', to: 'server', type: 'ethernet' },
+      { from: 'switch_p2', to: 'pc_p2_1', type: 'ethernet' },
+
+      // Piso 1 connections
+      { from: 'switch_p1', to: 'pc_p1_1', type: 'ethernet' },
+      { from: 'switch_p1', to: 'pc_p1_2', type: 'ethernet' },
+      { from: 'switch_p1', to: 'pc_p1_3', type: 'ethernet' },
+      { from: 'switch_p1', to: 'printer_p1', type: 'ethernet' },
+
+      // Planta Baja connections
+      { from: 'switch_pb', to: 'pc_pb_1', type: 'ethernet' },
+      { from: 'switch_pb', to: 'ap_pb', type: 'ethernet' },
+      { from: 'switch_pb', to: 'printer_pb', type: 'ethernet' },
+    ];
+
+    /* ==========================================================================
+       2. GLOBAL STATE & CANVAS INITIALIZATION
+       ========================================================================== */
+    let canvas, ctx;
+    let showCables = true;
+    let packets = []; // Active packet animations
+    let packetCountTotal = 0;
+
+    window.onload = function() {
+      canvas = document.getElementById('networkCanvas');
+      ctx = canvas.getContext('2d');
+
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      initUiComponents();
+      populateDropdowns();
+      renderIpTable();
+
+      // Start animation loop
+      requestAnimationFrame(animationLoop);
+
+      // Re-render Lucide icons
+      if (window.lucide) lucide.createIcons();
+    };
+
+    function resizeCanvas() {
+      const container = document.getElementById('canvasContainer');
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+      renderOverlayButtons();
+    }
+
+    /* ==========================================================================
+       3. DRAWING & ANIMATION LOOP
+       ========================================================================== */
+    function animationLoop(timestamp) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Building Floors Backgrounds
+      drawBuildingFloors();
+
+      // 2. Draw Connections/Cable Lines
+      if (showCables) {
+        drawConnections();
+      }
+
+      // 3. Update & Draw Data Packets
+      updateAndDrawPackets();
+
+      requestAnimationFrame(animationLoop);
+    }
+
+    function drawBuildingFloors() {
+      const w = canvas.width;
+      const h = canvas.height;
+      const floorHeight = h / 3;
+
+      const floorNames = [
+        "PISO 2: Dirección General & Data Center",
+        "PISO 1: Recursos Humanos & Contabilidad",
+        "PLANTA BAJA: Recepción & Atención a Clientes"
+      ];
+
+      for (let i = 0; i < 3; i++) {
+        const y = i * floorHeight;
+        
+        // Floor subtle background
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(15, 23, 42, 0.4)' : 'rgba(30, 41, 59, 0.2)';
+        ctx.fillRect(0, y, w, floorHeight);
+
+        // Floor Divider Lines
+        ctx.strokeStyle = 'rgba(51, 65, 85, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+
+        // Floor Header Text Label
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+        ctx.font = '600 11px Inter, sans-serif';
+        ctx.fillText(floorNames[i], 12, y + 20);
+      }
+    }
+
+    function getDeviceCoords(dev) {
+      const h = canvas.height;
+      const w = canvas.width;
+      return {
+        x: dev.relX * w,
+        y: dev.relY * h
+      };
+    }
+
+    function drawConnections() {
+      connections.forEach(conn => {
+        const dev1 = devices.find(d => d.id === conn.from);
+        const dev2 = devices.find(d => d.id === conn.to);
+
+        if (!dev1 || !dev2) return;
+
+        const p1 = getDeviceCoords(dev1);
+        const p2 = getDeviceCoords(dev2);
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+
+        if (conn.type === 'fiber') {
+          // Yellow/Amber Fiber Line
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.8)';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#fbbf24';
+          ctx.shadowBlur = 8;
+        } else {
+          // Cyan Ethernet Line
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+          ctx.lineWidth = 1.5;
+          ctx.shadowBlur = 0;
+        }
+
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset shadow
+      });
+    }
+
+    /* ==========================================================================
+       4. PATHFINDING & PACKET ANIMATION
+       ========================================================================== */
+    // Find shortest topological path using BFS
+    function findPath(startId, targetId) {
+      if (startId === targetId) return [startId];
+
+      const queue = [[startId]];
+      const visited = new Set([startId]);
+
+      while (queue.length > 0) {
+        const path = queue.shift();
+        const node = path[path.length - 1];
+
+        if (node === targetId) return path;
+
+        // Find neighbors connected to node
+        const neighbors = [];
+        connections.forEach(c => {
+          if (c.from === node) neighbors.push(c.to);
+          if (c.to === node) neighbors.push(c.from);
+        });
+
+        for (const n of neighbors) {
+          if (!visited.has(n)) {
+            visited.add(n);
+            queue.push([...path, n]);
+          }
+        }
+      }
+      return null; // Path not found
+    }
+
+    function createPacketAnimation(sourceId, targetId, onCompleteCallback) {
+      const pathIds = findPath(sourceId, targetId);
+      if (!pathIds || pathIds.length < 2) return false;
+
+      const pathCoords = pathIds.map(id => {
+        const dev = devices.find(d => d.id === id);
+        return getDeviceCoords(dev);
+      });
+
+      packets.push({
+        path: pathCoords,
+        pathIds: pathIds,
+        currentSegment: 0,
+        progress: 0,
+        speed: 0.025, // speed factor
+        sourceId: sourceId,
+        targetId: targetId,
+        onComplete: onCompleteCallback
+      });
+
+      packetCountTotal++;
+      document.getElementById('packetCounter').innerText = packetCountTotal;
+      return true;
+    }
+
+    function updateAndDrawPackets() {
+      for (let i = packets.length - 1; i >= 0; i--) {
+        const pkt = packets[i];
+        pkt.progress += pkt.speed;
+
+        if (pkt.progress >= 1) {
+          pkt.progress = 0;
+          pkt.currentSegment++;
+
+          if (pkt.currentSegment >= pkt.path.length - 1) {
+            // Reached destination
+            if (pkt.onComplete) pkt.onComplete();
+            packets.splice(i, 1);
+            continue;
+          }
+        }
+
+        // Interpolate position
+        const p1 = pkt.path[pkt.currentSegment];
+        const p2 = pkt.path[pkt.currentSegment + 1];
+
+        const x = p1.x + (p2.x - p1.x) * pkt.progress;
+        const y = p1.y + (p2.y - p1.y) * pkt.progress;
+
+        // Draw Packet (Neon Glowing Circle/Envelope)
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#00ff66';
+        ctx.shadowColor = '#00ff66';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Outer pulse ring
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 255, 102, 0.4)';
+        ctx.stroke();
+      }
+    }
+
+    /* ==========================================================================
+       5. DOM OVERLAY BUTTONS & UI INTERACTION
+       ========================================================================== */
+    function renderOverlayButtons() {
+      const container = document.getElementById('deviceOverlay');
+      container.innerHTML = ''; // Clear existing
+
+      devices.forEach(dev => {
+        const coords = getDeviceCoords(dev);
+
+        const btn = document.createElement('button');
+        btn.className = `absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto flex flex-col items-center group transition-transform hover:scale-110`;
+        btn.style.left = `${coords.x}px`;
+        btn.style.top = `${coords.y}px`;
+
+        // Icon color map
+        let badgeColor = "bg-slate-800 border-slate-700 text-slate-300";
+        if (dev.type === 'router') badgeColor = "bg-amber-950 border-amber-500/50 text-amber-400 glow-cyan";
+        if (dev.type === 'server') badgeColor = "bg-purple-950 border-purple-500/50 text-purple-400";
+        if (dev.type === 'switch') badgeColor = "bg-blue-950 border-blue-500/50 text-blue-400";
+
+        btn.innerHTML = `
+          <div class="p-2.5 rounded-2xl ${badgeColor} border shadow-lg flex items-center justify-center">
+            <i data-lucide="${dev.icon}" class="w-5 h-5"></i>
+          </div>
+          <div class="mt-1 bg-slate-900/90 border border-slate-800 rounded-md px-1.5 py-0.5 text-[10px] font-mono text-slate-300 shadow">
+            ${dev.name}
+          </div>
+          <div class="text-[9px] font-mono text-cyan-400 font-bold">
+            ${dev.ip}
+          </div>
+        `;
+
+        btn.onclick = () => openIpModal(dev.id);
+
+        container.appendChild(btn);
+      });
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function initUiComponents() {
+      // Toggle cables button
+      document.getElementById('toggleCableBtn').onclick = function() {
+        showCables = !showCables;
+        this.querySelector('span').innerText = showCables ? "Ocultar Cableado" : "Mostrar Cableado";
+      };
+
+      // Quick traffic button
+      document.getElementById('quickTrafficBtn').onclick = simulateGeneralTraffic;
+
+      // Reset button
+      document.getElementById('resetSimBtn').onclick = function() {
+        packets = [];
+        packetCountTotal = 0;
+        document.getElementById('packetCounter').innerText = "0";
+        logConsole("[SISTEMA] Estado de simulación reiniciado con éxito.");
+      };
+
+      // Send manual packet button
+      document.getElementById('sendPacketBtn').onclick = handleManualPacketSend;
+
+      // Clear console
+      document.getElementById('clearConsoleBtn').onclick = function() {
+        document.getElementById('terminalConsole').innerHTML = '';
+      };
+
+      // Modal buttons
+      document.getElementById('closeModalBtn').onclick = closeIpModal;
+      document.getElementById('cancelModalBtn').onclick = closeIpModal;
+      document.getElementById('ipConfigForm').onsubmit = saveIpConfiguration;
+    }
+
+    function populateDropdowns() {
+      const sourceSelect = document.getElementById('sourceSelect');
+      const targetSelect = document.getElementById('targetSelect');
+
+      sourceSelect.innerHTML = '';
+      targetSelect.innerHTML = '';
+
+      devices.forEach(dev => {
+        const opt1 = document.createElement('option');
+        opt1.value = dev.id;
+        opt1.text = `${dev.name} (${dev.ip})`;
+        sourceSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = dev.id;
+        opt2.text = `${dev.name} (${dev.ip})`;
+        targetSelect.appendChild(opt2);
+      });
+
+      // Default selection (PC Piso 1 to Server)
+      sourceSelect.value = 'pc_p1_3';
+      targetSelect.value = 'server';
+    }
+
+    function renderIpTable() {
+      const tbody = document.getElementById('ipTableBody');
+      tbody.innerHTML = '';
+
+      const floorLabels = ["Planta Baja", "Piso 1", "Piso 2"];
+
+      devices.forEach(dev => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 transition";
+        tr.innerHTML = `
+          <td class="py-2.5 font-bold text-slate-200">${dev.name}</td>
+          <td class="py-2.5 text-slate-400">${floorLabels[dev.floor]}</td>
+          <td class="py-2.5 text-cyan-400">${dev.ip}</td>
+          <td class="py-2.5 text-slate-400">${dev.mask}</td>
+          <td class="py-2.5 text-emerald-400">${dev.gateway}</td>
+          <td class="py-2.5 text-right">
+            <button onclick="openIpModal('${dev.id}')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-xs rounded-md text-cyan-300">Editar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ==========================================================================
+       6. CONSOLE LOGGING & PING SIMULATION LOGIC
+       ========================================================================== */
+    function logConsole(msg, type = 'normal') {
+      const consoleBox = document.getElementById('terminalConsole');
+      const line = document.createElement('div');
+
+      if (type === 'success') line.className = "text-green-400 font-semibold";
+      else if (type === 'info') line.className = "text-cyan-300";
+      else if (type === 'warn') line.className = "text-amber-400";
+      else line.className = "text-slate-300";
+
+      line.innerText = msg;
+      consoleBox.appendChild(line);
+      consoleBox.scrollTop = consoleBox.scrollHeight;
+    }
+
+    function handleManualPacketSend() {
+      const srcId = document.getElementById('sourceSelect').value;
+      const tgtId = document.getElementById('targetSelect').value;
+
+      const srcDev = devices.find(d => d.id === srcId);
+      const tgtDev = devices.find(d => d.id === tgtId);
+
+      if (srcId === tgtId) {
+        logConsole("[ERROR] El origen y destino deben ser diferentes.", 'warn');
+        return;
+      }
+
+      logConsole(`\n> PING ${tgtDev.ip} desde ${srcDev.ip} con 32 bytes de datos:`, 'info');
+
+      // Dispatch visual packet animation
+      const created = createPacketAnimation(srcId, tgtId, () => {
+        // Callback when packet arrives at target
+        logConsole(`Respuesta desde ${tgtDev.ip}: bytes=32 tiempo=2ms TTL=64`, 'success');
+        
+        // Return trip packet animation (Pong)
+        createPacketAnimation(tgtId, srcId, () => {
+          logConsole(`Paquete entregado con éxito entre ${srcDev.name} y ${tgtDev.name} (0% pérdidas).`, 'success');
+        });
+      });
+
+      if (!created) {
+        logConsole(`[ERROR] No existe ruta válida entre ${srcDev.name} y ${tgtDev.name}.`, 'warn');
+      }
+    }
+
+    function simulateGeneralTraffic() {
+      logConsole(`\n[TRAFICO GENERAL] Iniciando simulación de tráfico aleatorio en la red...`, 'info');
+
+      const nonNetworkDevices = devices.filter(d => d.type !== 'switch');
+
+      for (let i = 0; i < 4; i++) {
+        setTimeout(() => {
+          const randSrc = nonNetworkDevices[Math.floor(Math.random() * nonNetworkDevices.length)];
+          let randTgt = nonNetworkDevices[Math.floor(Math.random() * nonNetworkDevices.length)];
+
+          while (randTgt.id === randSrc.id) {
+            randTgt = nonNetworkDevices[Math.floor(Math.random() * nonNetworkDevices.length)];
+          }
+
+          createPacketAnimation(randSrc.id, randTgt.id, () => {
+            logConsole(`Tráfico: ${randSrc.name} -> ${randTgt.name} completado.`, 'success');
+          });
+        }, i * 600);
+      }
+    }
+
+    /* ==========================================================================
+       7. MODAL EDIT IP CONFIGURATION
+       ========================================================================== */
+    function openIpModal(deviceId) {
+      const dev = devices.find(d => d.id === deviceId);
+      if (!dev) return;
+
+      document.getElementById('modalDeviceId').value = dev.id;
+      document.getElementById('modalDevName').value = dev.name;
+      document.getElementById('modalDevIp').value = dev.ip;
+      document.getElementById('modalDevMask').value = dev.mask;
+      document.getElementById('modalDevGateway').value = dev.gateway;
+
+      const modal = document.getElementById('ipConfigModal');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        document.getElementById('modalCard').classList.remove('scale-95');
+      }, 10);
+    }
+
+    function closeIpModal() {
+      const modal = document.getElementById('ipConfigModal');
+      modal.classList.add('opacity-0');
+      document.getElementById('modalCard').classList.add('scale-95');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 200);
+    }
+
+    function saveIpConfiguration(e) {
+      e.preventDefault();
+
+      const devId = document.getElementById('modalDeviceId').value;
+      const dev = devices.find(d => d.id === devId);
+
+      if (dev) {
+        const oldIp = dev.ip;
+        dev.ip = document.getElementById('modalDevIp').value;
+        dev.mask = document.getElementById('modalDevMask').value;
+        dev.gateway = document.getElementById('modalDevGateway').value;
+
+        logConsole(`[CONFIG] ${dev.name}: IP modificada de ${oldIp} a ${dev.ip}`, 'info');
+
+        // Update UI
+        populateDropdowns();
+        renderIpTable();
+        renderOverlayButtons();
+        closeIpModal();
+      }
+    }
+  </script>
+
+</body>
+</html>
